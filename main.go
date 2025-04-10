@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 )
 
@@ -12,6 +13,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", test)
 	mux.HandleFunc("POST /add", createTodo)
+	mux.HandleFunc("GET /get/{id}", getTodo)
 
 	fmt.Println("Hello API")
 
@@ -57,4 +59,25 @@ func createTodo(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Println(todoCache)
+}
+
+// get todo by id
+func getTodo(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	mutex.Lock()
+	todo, ok := todoCache[id]
+	mutex.Unlock()
+
+	if ok {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(todo)
+	} else {
+		http.Error(w, "Not Found", http.StatusBadRequest)
+		return
+	}
 }

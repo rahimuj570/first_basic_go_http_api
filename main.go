@@ -14,6 +14,7 @@ func main() {
 	mux.HandleFunc("GET /", test)
 	mux.HandleFunc("POST /add", createTodo)
 	mux.HandleFunc("GET /get/{id}", getTodo)
+	mux.HandleFunc("DELETE /get/{id}", deleteTodo)
 
 	fmt.Println("Hello API")
 
@@ -80,4 +81,30 @@ func getTodo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Not Found", http.StatusBadRequest)
 		return
 	}
+}
+
+// to delete todo
+func deleteTodo(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if _, ok := todoCache[id]; !ok {
+		http.Error(w, "Not Found", http.StatusBadRequest)
+		return
+	}
+
+	mutex.Lock()
+	delete(todoCache, id)
+	mutex.Unlock()
+
+	type t_err struct {
+		Msg    string `json:"msg"`
+		Status uint   `json:"status"`
+	}
+
+	json.NewEncoder(w).Encode(t_err{"Deleted", http.StatusOK})
+
 }
